@@ -55,14 +55,14 @@ class Cli:
         """Runs when "CLI" is started"""        
         while True: 
             print("---------------------------------")
-            print(f"Currently selected account: {self._bank.selected_print()}")
-            self.display_board()
+            self.print_game()
+
 
     
-    def display_board(self): 
-        
-        self.boards.print_boards
-        
+    def print_game(self): 
+        self.white_player.print_era()
+        self.boards.print_boards()
+        self.black_player.print_era()
 
 if __name__ == "__main__":
     Cli().run()
