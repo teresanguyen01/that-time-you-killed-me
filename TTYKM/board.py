@@ -1,34 +1,39 @@
 class Board: 
-    def __init__(self, era, focus_players): 
-        self.board = [[0 for _ in range(4)] for _ in range(4)]
+    """
+    Represents one board
+    """
+    def __init__(self, era): 
+        self.board = [[None for i in range(4)] for i in range(4)]
         self._era = era
-        self._who_there = focus_players # int input 
-        if era == "past": 
-            self.board[0][0] = 1
-            self.board[3][3] = "A"
-        elif era == "present": 
-            self.board[0][0] = 2
-            self.board[3][3] = "B"          
-        elif era == "future": 
-            self.board[0][0] = 3
-            self.board[3][3] = "C"
+        self.current_pieces = []
 
-    def move_player(self, copy, move1, move2): 
-        index = None
-        for i, row in enumerate(self.board): 
-            for j, value in enumerate(row): 
-                if value == copy: 
-                    index = (i, j)
-        print(index)
+    def place_piece(self, piece, row, col): 
+        """
+        Place the piece on the board and update the current pieces on the board
+        """
+        if 0 <= row < 4 and 0 <= col < 4: 
+            self.board[row][col] = piece
+        if piece.denotation not in self.current_pieces: 
+            self.current_pieces.append(piece.denotation)
     
-    def update_era_players(self, player): 
-        self._who_there.append(player)
+    def remove_piece(self, row, col): 
+        """
+        Remove the piece from the board
+        if there was a piece on the board, remove it from the current pieces on the board
+        """
+        piece_before = self.board[row][col]
+        self.board[row][col] = None
+        if piece_before and piece_before.denotation in self.current_pieces:
+            self.current_pieces.remove(piece_before.denotation)
+        
+    def whos_on_board(self, row, col): 
+        """
+        Returns what was on the board
+        """
+        return (self.board[row][col])
     
-    def remove_player_from_era(self, player): 
-        self._who_there.remove(player)
-                
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     board = Board("past", 1)
     board.update_board("A", move1=None, move2=None)
     
