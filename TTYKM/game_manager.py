@@ -1,9 +1,9 @@
 from human import Human 
-from heuristic_ai import HeuristicAI
-from random_ai import RandomAI
+# from heuristic_ai import HeuristicAI
+# from random_ai import RandomAI
 from caretaker import Caretaker
 from board_manager import BoardManager
-from memento import Memento
+# from memento import Memento
 from originator import Originator
 from factory import HumanFactory, RandomAIFactory, HeuristicAIFactory
 
@@ -117,7 +117,10 @@ class GameManager:
                             print("Not a valid direction")
                             continue
                     else:
-                        move1 = current_player_obj.select_direction(self.boards, copy)
+                        if self.player1_arg == "heuristic": 
+                            move1 = current_player_obj.select_direction(self.boards, copy, self)
+                        else: 
+                            move1 = current_player_obj.select_direction(self.boards, copy)
                         if move1 not in self.valid_moves_list: 
                             break
                     if (current_player_obj.make_move(self.boards, copy, move1)): 
@@ -134,7 +137,10 @@ class GameManager:
                             print("Not a valid direction")
                             continue
                     else:
-                        move2 = current_player_obj.select_direction(self.boards, copy)
+                        if self.player1_arg == "heuristic": 
+                            move2 = current_player_obj.select_direction(self.boards, copy, self)
+                        else: 
+                            move2 = current_player_obj.select_direction(self.boards, copy)
                         if move2 not in self.valid_moves_list: 
                             break
                     if (current_player_obj.make_move(self.boards, copy, move2)): 
@@ -251,23 +257,23 @@ class GameManager:
         """
         if status == "on": 
             print(
-                f"white's score: {self._calculate_era_presence(self.player1)} eras, "
-                f"{self._calculate_piece_advantage(self.player1, self.player2)} advantage, "
-                f"{self._calculate_supply(self.player1)} supply, "
-                f"{self._calculate_centrality(self.player1)} centrality, "
-                f"{self._calculate_focus(self.player1)} in focus"
+                f"white's score: {self.calculate_era_presence(self.player1)} eras, "
+                f"{self.calculate_piece_advantage(self.player1, self.player2)} advantage, "
+                f"{self.calculate_supply(self.player1)} supply, "
+                f"{self.calculate_centrality(self.player1)} centrality, "
+                f"{self.calculate_focus(self.player1)} in focus"
             )
             print(
-                f"black's score: {self._calculate_era_presence(self.player2)} eras, "
-                f"{self._calculate_piece_advantage(self.player2, self.player1)} advantage, "
-                f"{self._calculate_supply(self.player2)} supply, "
-                f"{self._calculate_centrality(self.player2)} centrality, "
-                f"{self._calculate_focus(self.player2)} in focus"
+                f"black's score: {self.calculate_era_presence(self.player2)} eras, "
+                f"{self.calculate_piece_advantage(self.player2, self.player1)} advantage, "
+                f"{self.calculate_supply(self.player2)} supply, "
+                f"{self.calculate_centrality(self.player2)} centrality, "
+                f"{self.calculate_focus(self.player2)} in focus"
             )
         else: 
             return
 
-    def _calculate_era_presence(self, player):
+    def calculate_era_presence(self, player):
         """
         Calculates the era presence based on the player
         """
@@ -278,19 +284,19 @@ class GameManager:
                 eras1.add(piece.current_era)
         return len(eras1)
 
-    def _calculate_piece_advantage(self, p1, p2):
+    def calculate_piece_advantage(self, p1, p2):
         """
         Calculates the piece advantage given two players
         """
         return p1._num_on_board - p2._num_on_board
     
-    def _calculate_supply(self, player):
+    def calculate_supply(self, player):
         """
         Calculates the player's supply (how many pieces the player has left to put on the board)
         """
         return len(player.pieces_supply)
 
-    def _calculate_centrality(self, player):
+    def calculate_centrality(self, player):
         """
         Calculates how many pieces the player has in the center of the board
         """
@@ -300,7 +306,7 @@ class GameManager:
                 centrality += 1
         return centrality
     
-    def _calculate_focus(self, player):
+    def calculate_focus(self, player):
         """
         Calculates on how many pieces the player has on the board on their current era
         """
@@ -310,7 +316,3 @@ class GameManager:
             if piece in board.current_pieces: 
                 focus += 1
         return focus
-
-
-
-

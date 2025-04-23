@@ -127,5 +127,3 @@ class Originator:
                                 piece = p
                                 break
                         board.board[r][c] = piece
-
-
