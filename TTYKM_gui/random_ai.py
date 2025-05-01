@@ -30,7 +30,6 @@ class RandomAI(Player):
             return None
         return random.choice(available_pieces)
 
-
     def select_direction(self, boardManager, piece):
         """
         selects a direction
@@ -42,7 +41,6 @@ class RandomAI(Player):
         if not valid_moves:
             return None
         return random.choice(valid_moves)
-
 
     def select_era(self):
         """

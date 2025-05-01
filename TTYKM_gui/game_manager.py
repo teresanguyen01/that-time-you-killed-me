@@ -1,3 +1,12 @@
+"""
+Some comments: 
+- I was not able to figure out how to do move selection using the buttons because I felt like the way I thought of it in my
+mind was too redundant -> function to change and then state (probably done in show valid moves) since I was already having issues with the selecting piece.
+- After you select the piece, you must select the "next". I tried while loops such as if a piece isn't selected, then continue, but it kept breaking on my computer.
+- When you select a random or heuristic player, you have to press next to see their next move. 
+- I wish I had looked at the Tk GUI assignment before doing HW5 since my code is so messy now. XD
+"""
+
 from human import Human 
 # from heuristic_ai import HeuristicAI
 # from random_ai import RandomAI
@@ -12,7 +21,6 @@ from factory import HumanFactory, RandomAIFactory, HeuristicAIFactory
 
 class GameManager: 
     """Manages the game"""
-
     # player 1 is white and player 2 is black
     def __init__(self, player1, player2, history_status, score_status):
         self._window = ctk.CTk()
@@ -22,20 +30,17 @@ class GameManager:
         self._top.pack(pady=10)
         self.frames = {}
         self.buttons = {}
-
-        # self._white_era_label = tk.Label(self._top, text="White Era: ")
-        # self._white_era_label.pack()
+        self.state = False
+        self.selected_piece = None
         self._main_board_frame = tk.Frame(self._window)
         self._main_board_frame.pack()
-
         self._eras1_frame = tk.Frame(self._main_board_frame)
         self._eras1_frame.pack()
-
         self._boards_frame = tk.Frame(self._main_board_frame)
         self._boards_frame.pack()
-
         self._eras2_frame = tk.Frame(self._main_board_frame)
         self._eras2_frame.pack()
+        # go through all the eras and create the grid of buttons for each one
         for era in ["past", "present", "future"]:
             frame = tk.LabelFrame(self._boards_frame, text=era, padx=5, pady=5)
             frame.pack(side="left", padx=10)
@@ -50,7 +55,6 @@ class GameManager:
                 self.buttons[era].append(row)
         self._bottom_frame = tk.Frame(self._main_board_frame)
         self._bottom_frame.pack(pady=10)
-
         self._valid_moves_list = ['n', 'e', 's', 'w', 'f', 'b']
         self.player1_arg = player1 
         self.player2_arg = player2
@@ -64,12 +68,8 @@ class GameManager:
         self.player1 = self.player1_factory.create_player(1, "past")
         self.player2 = self.player2_factory.create_player(2, "future")
 
-
-        self._history = history_status
-        if score_status == "on": 
-            self._score_status = "on"
-        else: 
-            self._score_status = "off"
+        self._history_status = history_status
+        self._score_status = score_status
         self.current_player = "white"
         self.num_turns = 1
         self.ended = False
@@ -84,42 +84,48 @@ class GameManager:
         self.caretaker = Caretaker(self.originator)
         self.turn_label = ctk.CTkLabel(self._top, text="Turn Info", font=("Helvetica", 14))
         self.turn_label.pack()
-        self.turn_label.configure(
-            text=f"Turn {self.num_turns}: {self.current_player}"
-        )
+        self.turn_label.configure(text=f"Turn {self.num_turns}: {self.current_player}")
         # self.get_current_player_obj()
-        self._undo_button = tk.Button(self._bottom_frame, text="Undo", command=self.undo_and_update)
-        self._undo_button.grid(row=0, column=0, padx=5)
 
-        self._redo_button = tk.Button(self._bottom_frame, text="Redo", command=self.redo_and_update)
-        self._redo_button.grid(row=0, column=1, padx=5)
+        if self._history_status == "on": 
+            self._undo_button = tk.Button(self._bottom_frame, text="Undo", command=self._undo_and_update)
+            self._undo_button.grid(row=0, column=0, padx=5)
+            self._redo_button = tk.Button(self._bottom_frame, text="Redo", command=self._redo_and_update)
+            self._redo_button.grid(row=0, column=1, padx=5)
 
-        self._next_button = tk.Button(self._bottom_frame, text="Bruh", command=self.next)
+        self._next_button = tk.Button(self._bottom_frame, text="Next", command=self.next)
         self._next_button.grid(row=0, column=2, padx=5)
-        self._print_score(self._score_status)
+        if self._score_status == "on": 
+            self._print_score()
 
-    def undo_and_update(self):
+    def _undo_and_update(self):
+        """Does all the stuff undo is supposed to do and updates the GUI"""
         self.caretaker.undo()
         self.update_turn_label()
         self.update_board_display()
         self.update_score()
 
-    def redo_and_update(self):
+    def _redo_and_update(self):
+        """Does all the stuff redo is supposed to do and updates the GUI"""
         self.caretaker.redo()
         self.update_turn_label()
         self.update_board_display()
         self.update_score()
 
     def update_turn_label(self):
+        """Updates the turn label"""
         current_player_obj = self.get_current_player_obj()
         turn_text = f"Turn {self.num_turns}: {self.current_player}\nCurrent Era: {current_player_obj._current_era}"
         self.turn_label.configure(text=turn_text)
 
     def get_current_player_obj(self):
+        """Gets the current player"""
         return self.player1 if self.current_player == "white" else self.player2
     
     def update_board_display(self):
         """Updates the GUI buttons to show the pieces on the board."""
+
+        # eras1 and eras2 are the frames to show which era the player is on
         if self._eras1_frame != None:
             self._eras1_frame.destroy()
 
@@ -135,13 +141,14 @@ class GameManager:
             btn.pack(side=tk.LEFT, padx=5, pady=5)
             self.era_buttons.append(btn)
 
+        # update the boards to take in a piece selection
         for era in ["past", "present", "future"]:
             board = self.boards.get_board(era)
             for r in range(4):
                 for c in range(4):
                     piece = board.whos_on_board(r, c)
                     if piece is not None:
-                        self.buttons[era][r][c].configure(text=piece.denotation, fg_color="pink" if piece.color == "white" else "#CBC3E3")
+                        self.buttons[era][r][c].configure(text=piece.denotation, fg_color="pink" if piece.color == "white" else "#CBC3E3", command=lambda p=piece: self._piece_selection(p, self.state))
                     else:
                         self.buttons[era][r][c].configure(text="", fg_color="gray")
 
@@ -164,8 +171,7 @@ class GameManager:
         """Performs the next move in the game (no undo/redo here)"""
         if self.ended:
             return
-
-        print(f"Turn: {self.num_turns}, Current player: {self.current_player}")
+        # print(f"Turn: {self.num_turns}, Current player: {self.current_player}")
 
         # Setup current player
         current_player_obj = self.player1 if self.current_player == "white" else self.player2
@@ -174,43 +180,30 @@ class GameManager:
 
         # Check if there are movable pieces
         has_movable = any(self.boards.is_piece_in_era(piece, current_era) for piece in current_player_obj.pieces_on_board)
-
         if not has_movable:
             print("No copies to move")
-            copy = None
-            move1 = None
-            move2 = None
+            self.copy = None
+            self.move1 = None
+            self.move2 = None
         else:
             if is_human:
-                print("Select a copy to move")
-                popup = tk.Toplevel(self._window)
-                popup.title("Select Copy")
-
-                entry = tk.Entry(popup, width=20)
-                entry.pack(pady=10)
-
-                def submit_copy():
-                    user_input = entry.get()
-                    if self._valid_copy(user_input):
-                        self.selected_copy = user_input
-                        popup.destroy()
-                    else:
-                        messagebox.showerror("Error", "Not a valid copy.")
-                submit_button = tk.Button(popup, text="Submit", command=submit_copy)
-                submit_button.pack()
-                self._window.wait_window(popup)
-
-                copy = self.selected_copy
+                if self.selected_piece is None: 
+                    self._piece_select()
+                    return
+                else: 
+                    self.current_selected = tk.Label(self._top, text=f"Currently selected copy {self.selected_piece.denotation}", foreground="lightblue")
+                    self.current_selected.pack()
             else:
-                copy = current_player_obj.select_copy(self.boards)
+                self.copy = current_player_obj.select_copy(self.boards)
+            # Use popups to select directions and eras
             while True:
                 if is_human:
-                    print(f"Select the first direction to move {self._valid_moves_list}")
+                    self._show_available_moves(self.selected_piece)
+                    # print(f"Select the first direction to move {self._valid_moves_list}")
                     popup1 = tk.Toplevel(self._window)
-                    popup1.title("Select First Move")
-
-                    entry1 = tk.Entry(popup1, width=20)
-                    entry1.pack(pady=10)
+                    popup1.title(f"Select the first direction to move {self._valid_moves_list}")
+                    entry1 = tk.Entry(popup1, width=50)
+                    entry1.pack(pady=15)
 
                     def submit_move1():
                         move = entry1.get()
@@ -219,33 +212,30 @@ class GameManager:
                             popup1.destroy()
                         else:
                             messagebox.showerror("Error", "Not a valid direction.")
-
                     submit_button1 = tk.Button(popup1, text="Submit", command=submit_move1)
                     submit_button1.pack()
-
                     self._window.wait_window(popup1)
-
-                    move1 = self.selected_move1
+                    self.move1 = self.selected_move1
                 else:
-                    move1 = current_player_obj.select_direction(self.boards, copy, self) if self.player1_arg == "heuristic" else current_player_obj.select_direction(self.boards, copy)
-                    if move1 not in self._valid_moves_list:
+                    self.move1 = current_player_obj.select_direction(self.boards, self.copy, self) if self.player1_arg == "heuristic" else current_player_obj.select_direction(self.boards, self.copy)
+                    if self.move1 not in self._valid_moves_list:
                         continue
-
-                if current_player_obj.make_move(self.boards, copy, move1):
+                if current_player_obj.make_move(self.boards, self.copy, self.move1):
+                    self.update_board_display()
                     break
                 else:
-                    messagebox.showinfo("Move", f"Cannot move {move1}")
-                    print(f"Cannot move {move1}")
+                    messagebox.showinfo("Move", f"Cannot move {self.move1}")
+                    print(f"Cannot move {self.move1}")
 
-            # Select second move
             while True:
                 if is_human:
+                    self._show_available_moves(self.selected_piece)
                     print(f"Select the second direction to move {self._valid_moves_list}")
                     popup2 = tk.Toplevel(self._window)
-                    popup2.title("Select Second Move")
+                    popup2.title(f"Select the second direction to move {self._valid_moves_list}")
 
-                    entry2 = tk.Entry(popup2, width=20)
-                    entry2.pack(pady=10)
+                    entry2 = tk.Entry(popup2, width=50)
+                    entry2.pack(pady=15)
 
                     def submit_move2():
                         move = entry2.get()
@@ -257,28 +247,25 @@ class GameManager:
 
                     submit_button2 = tk.Button(popup2, text="Submit", command=submit_move2)
                     submit_button2.pack()
-
                     self._window.wait_window(popup2)
-
-                    move2 = self.selected_move2
+                    self.move2 = self.selected_move2
                 else:
-                    move2 = current_player_obj.select_direction(self.boards, copy, self) if self.player1_arg == "heuristic" else current_player_obj.select_direction(self.boards, copy)
-                    if move2 not in self._valid_moves_list:
+                    self.move2 = current_player_obj.select_direction(self.boards, self.copy, self) if self.player1_arg == "heuristic" else current_player_obj.select_direction(self.boards, self.copy)
+                    if self.move2 not in self._valid_moves_list:
                         continue
-
-                if current_player_obj.make_move(self.boards, copy, move2):
+                if current_player_obj.make_move(self.boards, self.copy, self.move2):
+                    self.update_board_display()
                     break
                 else:
-                    messagebox.showinfo("Move", f"Cannot move {move2}")
-                    print(f"Cannot move {move2}")
+                    messagebox.showinfo("Move", f"Cannot move {self.move2}")
+                    print(f"Cannot move {self.move2}")
 
         # Select next era
         while True:
             if is_human:
-                print("Select the next era to focus on ['past', 'present', 'future']")
+                # print("Select the next era to focus on ['past', 'present', 'future']")
                 popup3 = tk.Toplevel(self._window)
-                popup3.title("Select Era")
-
+                popup3.title("Select the next era to focus on ['past', 'present', 'future']")
                 entry3 = tk.Entry(popup3, width=20)
                 entry3.pack(pady=10)
 
@@ -292,20 +279,21 @@ class GameManager:
 
                 submit_button3 = tk.Button(popup3, text="Submit", command=submit_era)
                 submit_button3.pack()
-
                 self._window.wait_window(popup3)
-
-                era = self.selected_era
+                self.era = self.selected_era
             else:
-                era = current_player_obj.select_era()
-
-            if self._valid_era(current_player_obj, era):
+                self.era = current_player_obj.select_era()
+            if self._valid_era(current_player_obj, self.era):
                 break
 
-        self._handle_turn(era)
-        print(f"Selected move: {copy},{move1},{move2},{era}")
+        self._handle_turn(self.era)
+        # print(f"Selected move: {self.copy},{self.move1},{self.move2},{self.era}")
+        self.copy = None
+        self.move1 = None
+        self.move2 = None
+        self.era = None
 
-        if self._history == "on":
+        if self._history_status == "on":
             self.caretaker.backup()
 
         self.update_board_display()
@@ -319,25 +307,93 @@ class GameManager:
             if answer:  # answer is True if "Yes", False if "No"
                 self.reset_game()
                 self._start_game()
+    
+    def _piece_select(self): 
+        """
+        changes the state to true so that way we can select a piece directly on the board
+        """
+        if not hasattr(self, 'move_handles'):
+            self.move_handles = tk.Label(self._top, text="Select a copy to move.", foreground="green")
+            self.move_handles.pack()
+        self.state = True
 
+    def _piece_selection(self, piece, state):
+        """
+        handles errors and changes the piece selection
+        """
+        if not state:
+            return
+        current_player_obj = self.get_current_player_obj()
+        # I could have used valid_copy but there is less to worry about now that we can select on the board so I added it here
+        if piece.color != current_player_obj.color:
+            messagebox.showerror("Selection Error", "That is not your copy.")
+            return
+        if piece.current_era != current_player_obj._current_era:
+            messagebox.showerror("Selection Error", "Cannot select a copy from an inactive era.")
+            return
+        self.selected_piece = piece
+        self.copy = self.selected_piece.denotation
+        messagebox.showinfo("Selection", f"Selected: {piece.denotation}")
+        self.state = False
+        if hasattr(self, 'move_handles'):
+            self.move_handles.destroy()
+            del self.move_handles
+    
+    def _show_available_moves(self, piece):
+        """
+        makes the available moves green
+        """
+        directions = piece.valid_moves(self.boards)
+        row, col = piece.location_on_board
+        current_era = piece.current_era
+        eras = ["past", "present", "future"]
+        valid_positions = []
+        # first value of the index
+        era_index = eras.index(current_era)
+        for move in directions:
+            if move == 'n':
+                valid_positions.append((current_era, row - 1, col))
+            elif move == 's':
+                valid_positions.append((current_era, row + 1, col))
+            elif move == 'e':
+                valid_positions.append((current_era, row, col + 1))
+            elif move == 'w':
+                valid_positions.append((current_era, row, col - 1))
+            elif move == 'f' and era_index < 2:
+                valid_positions.append((eras[era_index + 1], row, col))
+            elif move == 'b' and era_index > 0:
+                valid_positions.append((eras[era_index - 1], row, col))
+
+        # turn the valid pieces green --> will go away after update board
+        for era in eras:
+            board = self.boards.get_board(era)
+            for r in range(4):
+                for c in range(4):
+                    btn = self.buttons[era][r][c]
+                    board_piece = board.whos_on_board(r, c)
+                    is_valid = (era, r, c) in valid_positions
+                    if board_piece:
+                        btn.configure(text=board_piece.denotation, fg_color="green" if is_valid else ("pink" if board_piece.color == "white" else "#CBC3E3"), command=lambda p=board_piece: self._piece_selection(p, self.state))
+                    else:
+                        btn.configure(text="", fg_color="green" if is_valid else "gray")
 
     def _start_game(self):
         """Starts the game and handles the gameplay"""
         self.player2.start_place_pieces(self.boards)
         self.player1.start_place_pieces(self.boards)
+        self._window.mainloop()
 
-        if self._history == "on":
+        if self._history_status == "on":
             self.caretaker.backup()
-
         while not self.ended:
-            if self._history == "on":
+            if self._history_status == "on":
                 if (isinstance(self.player1, Human) and self.current_player == "white") or (isinstance(self.player2, Human) and self.current_player == "black"):
                     while True:
                         print("undo, redo, or next")
                         choice = input()
                         if choice == "undo":
                             self.caretaker.undo()
-                            break  # go back to top of while loop
+                            break
                         elif choice == "redo":
                             self.caretaker.redo()
                             break
@@ -355,9 +411,8 @@ class GameManager:
         """
         Resets the game state for a new game.
         """
-        args = (self.player1_arg, self.player2_arg, self._history, self._score_status)
+        args = (self.player1_arg, self.player2_arg, self._history_status, self._score_status)
         self._window.destroy()
-        
         reset_game = GameManager(*args)
         reset_game._window.mainloop()
 
@@ -369,13 +424,19 @@ class GameManager:
         2. increments the number of turns
         3. updates the current player 
         """
+        self.state = False
+        self.selected_piece = None
         if self.current_player == "white":
             self.player1.update_current_era(era)
         else:
             self.player2.update_current_era(era)
         self.num_turns += 1
+        self.selected_piece = None
         self.current_player = "white" if self.current_player == "black" else "black"
         self.update_turn_label()
+        if hasattr(self, 'current_selected'):
+            self.current_selected.destroy()
+            del self.current_selected
         
     def _check_game_end(self): 
         """
@@ -429,16 +490,14 @@ class GameManager:
                 if copy in player2_pieces:
                     messagebox.showerror("Copy Selection Error", "That is not your copy")    
                     print("That is not your copy")
-                else:
-                    messagebox.showerror("Copy Selection Error", "Not a valid copy")    
-                    print("Not a valid copy")
                 return False
             if copy not in self.player1.pieces_on_board: 
                 messagebox.showerror("Copy Selection Error", "Not a valid copy")    
                 print("Not a valid copy")
                 return False
             if not self.boards.is_piece_in_era(copy, self.player1._current_era): 
-                messagebox.showerror("Copy Selection Error", "Cannot select a copy from an inactive era")    
+                messagebox.showerror("Copy Selection Error", "Cannot select a copy from an inactive era")
+                return    
                 print("Cannot select a copy from an inactive era")
                 return False
         elif self.current_player == "black": 
@@ -460,14 +519,11 @@ class GameManager:
                 return False
         return True
 
-    def _print_score(self, status):
+    def _print_score(self):
         """
         Prints and updates the score depending on the status ("on" or "off").
         """
-        if status != "on":
-            return  # just skip if not "on"
 
-        # Prepare updated text
         white_score_text = (
             f"white's score: {self.calculate_era_presence(self.player1)} eras, "
             f"{self.calculate_piece_advantage(self.player1, self.player2)} advantage, "
@@ -483,11 +539,9 @@ class GameManager:
             f"{self.calculate_focus(self.player2)} in focus"
         )
 
-        # Print to console
         print(white_score_text)
         print(black_score_text)
 
-        # Create labels if they don't exist yet
         if not hasattr(self, 'white_score_label'):
             self.white_score_label = tk.Label(self._top, text="White Score", font=("Helvetica", 14))
             self.white_score_label.pack()
@@ -496,7 +550,6 @@ class GameManager:
             self.black_score_label = tk.Label(self._top, text="Black Score", font=("Helvetica", 14))
             self.black_score_label.pack()
 
-        # Update the label texts
         self.white_score_label.config(text=white_score_text)
         self.black_score_label.config(text=black_score_text)
 
@@ -504,6 +557,8 @@ class GameManager:
         """
         Updates the white and black score labels in the GUI.
         """
+        if self._score_status == "off": 
+            return
         # Generate the score texts
         white_score_text = self._generate_score_text(self.player1, self.player2)
         black_score_text = self._generate_score_text(self.player2, self.player1)
