@@ -5,6 +5,7 @@ import tkinter as tk
 from caretaker import Caretaker
 from board_manager import BoardManager
 # from memento import Memento
+import customtkinter as ctk
 from tkinter import messagebox
 from originator import Originator
 from factory import HumanFactory, RandomAIFactory, HeuristicAIFactory
@@ -14,9 +15,9 @@ class GameManager:
 
     # player 1 is white and player 2 is black
     def __init__(self, player1, player2, history_status, score_status):
-        self._window = tk.Tk()
+        self._window = ctk.CTk()
         self._window.title("That Time You Killed Me")
-        self._window.geometry("1000x500")
+        self._window.geometry("1200x500")
         self._top = tk.Frame(self._window)
         self._top.pack(pady=10)
         self.frames = {}
@@ -24,9 +25,17 @@ class GameManager:
 
         # self._white_era_label = tk.Label(self._top, text="White Era: ")
         # self._white_era_label.pack()
+        self._main_board_frame = tk.Frame(self._window)
+        self._main_board_frame.pack()
 
-        self._boards_frame = tk.Frame(self._window)
-        self._boards_frame.pack() 
+        self._eras1_frame = tk.Frame(self._main_board_frame)
+        self._eras1_frame.pack()
+
+        self._boards_frame = tk.Frame(self._main_board_frame)
+        self._boards_frame.pack()
+
+        self._eras2_frame = tk.Frame(self._main_board_frame)
+        self._eras2_frame.pack()
         for era in ["past", "present", "future"]:
             frame = tk.LabelFrame(self._boards_frame, text=era, padx=5, pady=5)
             frame.pack(side="left", padx=10)
@@ -35,13 +44,11 @@ class GameManager:
             for r in range(4):
                 row = []
                 for c in range(4):
-                    btn = tk.Button(frame, text="", width=4, height=2,
-                                    command=lambda e=era, row=r, col=c: self.on_board_click(e, row, col))
-                    btn.grid(row=r, column=c)
+                    btn = ctk.CTkButton(frame, text="", width=80, height=40)
+                    btn.grid(row=r, column=c, padx=5, pady=5)
                     row.append(btn)
                 self.buttons[era].append(row)
-
-        self._bottom_frame = tk.Frame(self._window)
+        self._bottom_frame = tk.Frame(self._main_board_frame)
         self._bottom_frame.pack(pady=10)
 
         self._valid_moves_list = ['n', 'e', 's', 'w', 'f', 'b']
@@ -75,11 +82,12 @@ class GameManager:
         self.originator = Originator(self)
         # caretaker takes in the originator 
         self.caretaker = Caretaker(self.originator)
-        self.turn_label = tk.Label(self._top, text="Turn Info", font=("Helvetica", 14))
+        self.turn_label = ctk.CTkLabel(self._top, text="Turn Info", font=("Helvetica", 14))
         self.turn_label.pack()
-        self.turn_label.config(
-            text=f"Turn {self.num_turns}: {self.current_player}\nCurrent Era: {self.get_current_player_obj()._current_era}"
+        self.turn_label.configure(
+            text=f"Turn {self.num_turns}: {self.current_player}"
         )
+        # self.get_current_player_obj()
         self._undo_button = tk.Button(self._bottom_frame, text="Undo", command=self.undo_and_update)
         self._undo_button.grid(row=0, column=0, padx=5)
 
@@ -89,7 +97,6 @@ class GameManager:
         self._next_button = tk.Button(self._bottom_frame, text="Bruh", command=self.next)
         self._next_button.grid(row=0, column=2, padx=5)
         self._print_score(self._score_status)
-
 
     def undo_and_update(self):
         self.caretaker.undo()
@@ -106,22 +113,52 @@ class GameManager:
     def update_turn_label(self):
         current_player_obj = self.get_current_player_obj()
         turn_text = f"Turn {self.num_turns}: {self.current_player}\nCurrent Era: {current_player_obj._current_era}"
-        self.turn_label.config(text=turn_text)
+        self.turn_label.configure(text=turn_text)
 
     def get_current_player_obj(self):
         return self.player1 if self.current_player == "white" else self.player2
     
     def update_board_display(self):
         """Updates the GUI buttons to show the pieces on the board."""
+        if self._eras1_frame != None:
+            self._eras1_frame.destroy()
+
+        self._eras1_frame = tk.Frame(self._main_board_frame)
+        self._eras1_frame.pack(before=self._boards_frame)
+
+        current_era_1 = self.player1._current_era
+        eras = ["past", "present", "future"]
+        self.era_buttons = []
+        for era in eras:
+            text = "white" if era == current_era_1 else ""
+            btn = ctk.CTkButton(self._eras1_frame, text=text, width=380, height=40, fg_color="pink" if text == "white" else "gray")
+            btn.pack(side=tk.LEFT, padx=5, pady=5)
+            self.era_buttons.append(btn)
+
         for era in ["past", "present", "future"]:
             board = self.boards.get_board(era)
             for r in range(4):
                 for c in range(4):
                     piece = board.whos_on_board(r, c)
                     if piece is not None:
-                        self.buttons[era][r][c].config(text=piece.denotation, bg="pink" if piece.color == "white" else "purple")
+                        self.buttons[era][r][c].configure(text=piece.denotation, fg_color="pink" if piece.color == "white" else "#CBC3E3")
                     else:
-                        self.buttons[era][r][c].config(text="", bg="SystemButtonFace")
+                        self.buttons[era][r][c].configure(text="", fg_color="gray")
+
+        if self._eras2_frame != None:
+            self._eras2_frame.destroy()
+
+        self._eras2_frame = tk.Frame(self._main_board_frame)
+        self._eras2_frame.pack(before=self._boards_frame)
+
+        current_era_2 = self.player2._current_era
+        eras = ["past", "present", "future"]
+        self.era_buttons = []
+        for era in eras:
+            text = "black" if era == current_era_2 else ""
+            btn = ctk.CTkButton(self._eras2_frame, text=text, width=380, height=40, fg_color="#CBC3E3" if text == "black" else "gray")
+            btn.pack(side=tk.LEFT, padx=5, pady=5)
+            self.era_buttons.append(btn)
 
     def next(self):
         """Performs the next move in the game (no undo/redo here)"""
@@ -129,12 +166,6 @@ class GameManager:
             return
 
         print(f"Turn: {self.num_turns}, Current player: {self.current_player}")
-
-        # Check if game ended
-        self.ended = self._check_game_end()
-        if self.ended:
-            print("Game Over.")
-            return
 
         # Setup current player
         current_player_obj = self.player1 if self.current_player == "white" else self.player2
@@ -146,12 +177,12 @@ class GameManager:
 
         if not has_movable:
             print("No copies to move")
-            copy = move1 = move2 = None
+            copy = None
+            move1 = None
+            move2 = None
         else:
-            # Select copy
             if is_human:
                 print("Select a copy to move")
-
                 popup = tk.Toplevel(self._window)
                 popup.title("Select Copy")
 
@@ -165,17 +196,13 @@ class GameManager:
                         popup.destroy()
                     else:
                         messagebox.showerror("Error", "Not a valid copy.")
-
                 submit_button = tk.Button(popup, text="Submit", command=submit_copy)
                 submit_button.pack()
-
                 self._window.wait_window(popup)
 
                 copy = self.selected_copy
             else:
-                copy = current_player_obj.select_copy(self.boards, self)
-
-            # Select first move
+                copy = current_player_obj.select_copy(self.boards)
             while True:
                 if is_human:
                     print(f"Select the first direction to move {self._valid_moves_list}")
@@ -284,6 +311,15 @@ class GameManager:
         self.update_board_display()
         self.update_score()
 
+        # Check if game ended 
+        self.ended = self._check_game_end()
+        print(self.ended)
+        if self.ended:
+            answer = messagebox.askyesno("Game Over", "Play again?")
+            if answer:  # answer is True if "Yes", False if "No"
+                self.reset_game()
+                self._start_game()
+
 
     def _start_game(self):
         """Starts the game and handles the gameplay"""
@@ -314,20 +350,16 @@ class GameManager:
                     self.next()
             else:
                 self.next()
-            
-        self.ended = self._check_game_end()
-        print(self.ended)
-        if self.ended:
-            answer = messagebox.askyesno("Game Over", "Play again?")
-            if answer:  # answer is True if "Yes", False if "No"
-                self.reset_game()
-                self._start_game()
 
     def reset_game(self):
         """
         Resets the game state for a new game.
         """
-        self.__init__(self.player1_arg, self.player2_arg, self._history, self._score_status)
+        args = (self.player1_arg, self.player2_arg, self._history, self._score_status)
+        self._window.destroy()
+        
+        reset_game = GameManager(*args)
+        reset_game._window.mainloop()
 
     def _handle_turn(self, era): 
         """
@@ -366,10 +398,12 @@ class GameManager:
         # print(len(eras1))
         # print(len(eras2))
         if len(eras2) == 1 and len(eras1) > 1:
-            print("white has won")
+            self.white_won = tk.Label(self._top, text="White has Won!")
+            self.white_won.pack()
             return True
         elif len(eras1) == 1 and len(eras2) > 1:
-            print("black has won")
+            self.black_won = tk.Label(self._top, text="Black has Won!")
+            self.black_won.pack()
             return True
         return False 
         
